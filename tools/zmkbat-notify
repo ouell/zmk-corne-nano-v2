@@ -1,0 +1,17 @@
+#!/bin/zsh
+# Notify once when a ZMK keyboard half drops below 20%; re-arm after it recovers.
+# Run by launchd (~/Library/LaunchAgents/local.zmkbat-notify.plist); also refreshes the prompt cache.
+out=$(zmkbat) || exit 0
+print -r -- $out > ~/.cache/zmkbat
+state=~/.cache/zmkbat.notified
+low=()
+for side in ${(s: :)out}; do          # e.g. L:12%
+  (( ${${side#*:}%\%} < 20 )) && low+=$side
+done
+if (( $#low )); then
+  [[ -e $state ]] && exit 0
+  osascript -e "display notification \"Bateria baixa: ${low[*]}\" with title \"Corne ⌨\" sound name \"Submarine\""
+  touch $state
+else
+  rm -f $state
+fi
