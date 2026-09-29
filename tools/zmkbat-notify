@@ -1,0 +1,16 @@
+#!/bin/zsh
+# Notify once per half when it drops below 20%; re-arm that half after it recovers.
+# Run by launchd (~/Library/LaunchAgents/local.zmkbat-notify.plist); also refreshes the prompt cache.
+out=$(zmkbat) || exit 0
+mkdir -p ~/.cache
+print -r -- $out > ~/.cache/zmkbat
+for side in ${(s: :)out}; do          # e.g. L:12%
+  state=~/.cache/zmkbat.notified.${side%%:*}
+  if (( ${${side#*:}%\%} < 20 )); then
+    [[ -e $state ]] && continue
+    osascript -e "display notification \"Bateria baixa: $side\" with title \"Corne ⌨\" sound name \"Submarine\"" \
+      && touch $state
+  else
+    rm -f $state
+  fi
+done
